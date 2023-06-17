@@ -28,30 +28,30 @@ function App() {
         let list = [];
         console.log(data);
         data.forEach(item => list.push(item.place_url))
-        setSearchData(data);
+        
         const formData = JSON.stringify({product_list: list})
         const config = {
             headers: {'Content-Type': 'application/json'}
         }
-        await axios.post("scraper/", formData, config).then((res)=>{console.log(res);setImgList(res.data)})
-
+        await axios.post("scraper/", formData, config).then((res)=>{list = res.data; setSearchData(data); setImgList(res.data)})
         for (var i = 0; i < data.length; i++) {
           // @ts-ignore
           markers.push({
-            poi_name: data.place_name,
-            poi_category: data.category_name,
+            poi_name: data[i].place_name,
+            poi_category: data[i].category_name,
             position: {
               lat: data[i].y,
               lng: data[i].x,
             },
             content: data[i].place_name,
-            poi_addr: data.address_name,
-            poi_img: imgList[i],
+            poi_addr: data[i].address_name,
+            poi_img: list[i],
           });
           // @ts-ignore
           bounds.extend(new kakao.maps.LatLng(data[i].y, data[i].x));
         }
         setMarkers(markers);
+        console.log(markers);
 
         // 검색된 장소 위치를 기준으로 지도 범위를 재설정합니다
         map.setBounds(bounds);
@@ -66,7 +66,7 @@ function App() {
           <button
             onClick={() => {
               setKeyword(text);
-              setImgList([]);
+              // setImgList([]);
             }}
           >
             검색
@@ -81,7 +81,7 @@ function App() {
         <div>
           <ul>
             {searchData.map((item,idx)=>
-              <li className="search-list"><SearchList key={item.id} data={item} img={imgList[idx]}/></li>
+              <li onClick={() => setInfo(markers[idx])} className="search-list"><SearchList key={item.id} data={item} img={imgList[idx]}/></li>
             )}
           </ul>
         </div>
@@ -107,7 +107,7 @@ function App() {
             >
               {info && info.content === marker.content && (
                 <div style={{width: "300px", height: "200px", color: "#000" }}>
-                  <img style={{width: "50px", height: "50px"}} src={marker.poi_img}></img><br/>
+                  <img style={{width: "50px", height: "50px"}} src={marker.poi_img}/><button onClick={()=>{setInfo()}}>X</button><br/>
                   {marker.poi_name}<br/>
                   {marker.poi_category}<br/>
                   {marker.poi_addr}
