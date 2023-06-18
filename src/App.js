@@ -61,14 +61,20 @@ function App() {
     });
   }, [map, keyword]);
 
-  
-  
-  useEffect(()=>{
-    if (roadList.length !== 0){
-      console.log(roadList);
-      enqueueSnackbar("추가완료");
+  const addCart = (marker)=>{
+    var isExist = roadList.find(road => (road.apiId === marker.apiId));
+    if (isExist === undefined){
+      setRoadList([...roadList, marker]);
+      enqueueSnackbar(`${marker.poi_name} 추가 완료`);
+    } else {
+      enqueueSnackbar("이미 추가된 항목입니다");
     }
-  },[roadList]);
+  }
+
+  const removeCart = (idx) => {
+    enqueueSnackbar(`${roadList[idx].poi_name} 삭제 완료`);
+    setRoadList(roadList.slice(0,idx).concat(roadList.slice(idx+1,roadList.length)));
+  }
   
   const roadDisplay = ()=>{
     roadDisplayed.current.style.display = roadDisplayed.current.style.display === "none" ? "block" : "none";
@@ -76,33 +82,38 @@ function App() {
   return (
     <div className="content-container">
       <SnackbarProvider autoHideDuration={2000} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}/>
-      <div style={{width: "15vw"}}>
-        <div className="search-container" >
-          <button onClick={() => {setKeyword(search.current.value);}}>검색</button>
-          <input ref={search} type="text"/>
-          <button onClick={()=>{search.current.value = "";}}>X</button>
+      <div style={{width: "15vw", position: "relative"}}>
+        <div className="search-container" style={{position: "absolute"}}>
+          <div>
+            <button onClick={() => {setKeyword(search.current.value);}}>검색</button>
+            <input ref={search} type="text"/>
+            <button onClick={()=>{search.current.value = "";}}>X</button>
+          </div>
+          <div>
+            <ul>
+              {markers.map((item,idx)=>
+                <li onClick={() => setInfo(markers[idx])} className="search-list">
+                  <SearchList key={`item-${item.poi_name}-${item.position.lat},${item.position.lng}`} data={item} img={imgList[idx]}/></li>
+              )}
+            </ul>
+          </div>
         </div>
-        <div>
-          <ul>
-            {markers.map((item,idx)=>
-              <li onClick={() => setInfo(markers[idx])} className="search-list">
-                <SearchList key={`item-${item.poi_name}-${item.position.lat},${item.position.lng}`} data={item} img={imgList[idx]}/></li>
-            )}
-          </ul>
+        <div className="planner-container" style={{position: "absolute"}}>
+          
         </div>
       </div>
       <div style={{position:"relative", zIndex:"1"}}>
         <div style={{position:"absolute", zIndex:"2"}}>
           <button onClick={()=>{roadDisplay()}}>장바구니</button>
-          <div ref={roadDisplayed} style={{display:"none", background: "whitesmoke", height: "90vh", width: "15vw"}}>
+          <div ref={roadDisplayed} style={{display:"none", position:"absolute", background: "whitesmoke", height: "90vh", width: "15vw"}}>
             <ul>
-              {roadList.map(item => <li>{item.poi_name}</li>)}
+              {roadList.map((item, idx) => <li>{item.poi_name}<button onClick={()=>{removeCart(idx)}}>삭제</button></li>)}
             </ul>
           </div>
         </div>
         <Map // 로드뷰를 표시할 Container
           center={{ lat: 37.566826,lng: 126.9786567 }}
-          style={{ width: "80vw",height: "90vh" }}
+          style={{ width: "80vw",height: "90vh" }} 
           level={3}
           onCreate={setMap}
         >
@@ -116,7 +127,7 @@ function App() {
               {info && info.position.lat + info.position.lng === marker.position.lat + marker.position.lng && (
                 <div style={{width: "300px", height: "200px", color: "#000" }}>
                   {imgList[idx] === "" ? <div style={{width: "50px", height: "50px"}}/> : <img style={{width: "50px", height: "50px"}} src={imgList[idx]}/>}
-                  <button onClick={()=>{roadList.find(road => (road.apiId === marker.apiId)) === undefined ? setRoadList([...roadList, marker]) : enqueueSnackbar("이미 추가된 항목입니다")}}>+</button>
+                  <button onClick={()=>{addCart(marker)}}>+</button>
                   <button onClick={()=>{setInfo()}}>X</button><br/>
                   {marker.poi_name}<br/>
                   {marker.poi_category}<br/>
