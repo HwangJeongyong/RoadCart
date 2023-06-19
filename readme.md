@@ -7,3 +7,6 @@ npm install @mui/material @mui/styled-engine-sc styled-components
     "react-dom": "^17.0.0 || ^18.0.0"
   },
 npm install @fontsource/roboto
+npm install notistack
+npm i react-datepicker
+npm i react-beautiful-dnd

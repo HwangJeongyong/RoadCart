@@ -4,6 +4,9 @@ import { Map, MapMarker } from "react-kakao-maps-sdk";
 import SearchList from "./components/SearchList";
 import axios from "axios";
 import { SnackbarProvider, enqueueSnackbar } from 'notistack';
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css';
+import './Calendar.css';
 
 function App() {
   const { kakao } = window;
@@ -15,6 +18,11 @@ function App() {
   const [roadList, setRoadList] = useState([]);
   const search = createRef();
   const roadDisplayed = createRef();
+  const searchDisplayed = createRef();
+  const plannerDisplayed = createRef();
+  const [dateRange, setDateRange] = useState([null, null]);
+  const [startDate, endDate] = dateRange;
+  const [dateList, setDateList] = useState([]);
   
 
   useEffect(() => {
@@ -35,7 +43,12 @@ function App() {
         const config = {
             headers: {'Content-Type': 'application/json'}
         }
-        await axios.post("scraper/", formData, config).then((res)=>{list = res.data; setImgList(res.data)})
+
+
+
+        await axios.post("scraper/", formData, config)
+        .then((res)=>{list = res.data; setImgList(res.data)})
+
         for (var i = 0; i < data.length; i++) {
           // @ts-ignore
           markers.push({
@@ -61,7 +74,7 @@ function App() {
     });
   }, [map, keyword]);
 
-  const addCart = (marker)=>{
+  const addCart = (marker)=>{ // 길바구니에 추가
     var isExist = roadList.find(road => (road.apiId === marker.apiId));
     if (isExist === undefined){
       setRoadList([...roadList, marker]);
@@ -71,19 +84,51 @@ function App() {
     }
   }
 
-  const removeCart = (idx) => {
+  const removeCart = (idx) => { // 길바구니에서 제거
     enqueueSnackbar(`${roadList[idx].poi_name} 삭제 완료`);
     setRoadList(roadList.slice(0,idx).concat(roadList.slice(idx+1,roadList.length)));
   }
   
-  const roadDisplay = ()=>{
+  const roadDisplay = ()=>{ // 길바구니 열기/닫기
     roadDisplayed.current.style.display = roadDisplayed.current.style.display === "none" ? "block" : "none";
   }
+
+  const searchDisplay = ()=>{ // 검색 열기
+    searchDisplayed.current.style.display = "block";
+    plannerDisplayed.current.style.display = "none";
+  }
+
+  const plannerDisplay = ()=>{ // 일정관리 열기
+    searchDisplayed.current.style.display = "none";
+    plannerDisplayed.current.style.display = "block";
+  }
+
+  const getApi = async() => { // DB호출
+    await axios.get("http://172.30.1.39:8089/road").then((res)=>{console.log(res);})
+  }
+
+  const plannerDate = (update)=>{
+    if (update[1] !== null) {
+      let list = [];
+      for (let d = update[0].getTime(); d <= update[1].getTime(); d+=1000*3600*24){
+        let date = new Date(d + 1000*3600*9);
+        list.push(date);
+      }
+      setDateList(list);
+    }
+  }
+
   return (
     <div className="content-container">
-      <SnackbarProvider autoHideDuration={2000} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}/>
+      <SnackbarProvider autoHideDuration={2000} anchorOrigin={{ vertical: "top", horizontal: "center" }}/>
+      <div>
+        <div className="menu-container">
+          <button onClick={()=>{getApi()}}>홈</button> 
+          <button onClick={()=>{searchDisplay()}}>여행지 추가</button>
+          <button onClick={()=>{plannerDisplay()}}>일정관리</button>
+        </div>
       <div style={{width: "15vw", position: "relative"}}>
-        <div className="search-container" style={{position: "absolute"}}>
+        <div ref={searchDisplayed} className="search-container" style={{position: "absolute"}}>
           <div>
             <button onClick={() => {setKeyword(search.current.value);}}>검색</button>
             <input ref={search} type="text"/>
@@ -98,9 +143,24 @@ function App() {
             </ul>
           </div>
         </div>
-        <div className="planner-container" style={{position: "absolute"}}>
-          
+        <div ref={plannerDisplayed} className="planner-container" style={{position: "absolute", display: "none"}}>
+          <div style={{zIndex:"3"}}>
+            <DatePicker
+              selectsRange={true}
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(update) => {
+                setDateRange(update);
+                plannerDate(update);
+              }}
+              isClearable={true}
+            />
+          </div>
+          <div>
+            {dateList.map(item=><div>{item.toUTCString()}</div>)}
+          </div>
         </div>
+      </div>
       </div>
       <div style={{position:"relative", zIndex:"1"}}>
         <div style={{position:"absolute", zIndex:"2"}}>
