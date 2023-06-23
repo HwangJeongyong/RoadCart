@@ -1,6 +1,6 @@
 import "./App.css";
-import React, { createRef, useEffect, useState } from "react";
-import { Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
+import React, { createRef, useEffect, useState, forwardRef } from "react";
+import { CustomOverlayMap, Map, MapMarker, Polyline } from "react-kakao-maps-sdk";
 import axios from "axios";
 import { SnackbarProvider, enqueueSnackbar } from 'notistack';
 import DatePicker from 'react-datepicker'
@@ -8,7 +8,11 @@ import 'react-datepicker/dist/react-datepicker.css';
 import './Calendar.css';
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Modal from './components/Modal'
+import Review from './components/Review';
 import Cart from './components/Cart'
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import { ko } from "date-fns/esm/locale";
 
 function App() {
   const initialColumn = {
@@ -23,7 +27,6 @@ function App() {
   const [map, setMap] = useState();
   const [keyword, setKeyword] = useState("");
   const [searchList, setSearchList] = useState([]);
-  const [imgList, setImgList] = useState([]);
   const [pathList, setPathList] = useState([]);
   const [dateStatus, setDateStatus] = useState();
   const search = createRef();
@@ -31,10 +34,18 @@ function App() {
   const searchDisplayed = createRef();
   const plannerDisplayed = createRef();
   const [lineOpacity, setLineOpacity] = useState(false);
-  const [dateRange, setDateRange] = useState([null, null]);
+  const [dateRange, setDateRange] = useState([new Date(), null]);
   const [startDate, endDate] = dateRange;
   const [columns, setColumns] = useState(initialColumn);
   const [modalOpen, setModalOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [state, setState] = useState({
+    // 지도의 초기 위치
+    center: { lat: 33.452613, lng: 126.570888 },
+    // 지도 위치 변경시 panto를 이용할지에 대해서 정의
+    isPanto: false,
+  })
+  const [backColor, setBackColor] = useState({road: "white",search: "skyblue",planner: "white"});
 
   useEffect(() => { // 지도검색
     if (!map) return;
@@ -56,7 +67,9 @@ function App() {
         }
 
         await axios.post("scraper/", formData, config)
-        .then((res)=>{list = res.data; setImgList(res.data)})
+        .then((res)=>{
+          list = res.data;
+        })
 
         for (var i = 0; i < data.length; i++) {
           // @ts-ignore
@@ -66,7 +79,8 @@ function App() {
             lat: data[i].y,
             lng: data[i].x,
             poi_addr: data[i].address_name,
-            poi_img: list[i],
+            poi_img: list[i].img,
+            poi_info: list[i].review
           });
           // @ts-ignore
           bounds.extend(new kakao.maps.LatLng(data[i].y, data[i].x));
@@ -129,6 +143,7 @@ function App() {
 
   const plannerDate = (update)=>{ // 캘린더
     if (update[1] !== null) {
+      console.log(update);
       let map = {};
       map.cart = columns.cart;
       console.log(map.cart);
@@ -150,6 +165,12 @@ function App() {
     }
   }
 
+  const ExampleCustomInput = forwardRef(({ value, onClick }, ref) => ( // 캘린더 커스텀
+    <button className="example-custom-input" onClick={onClick} ref={ref}>
+      {value}
+    </button>
+  ));
+
   useEffect(()=>{ // 마커 리렌더링
     setInfo();
     if (!dateStatus) return;
@@ -166,12 +187,17 @@ function App() {
   //   if(dateStatus !== "cart")setInfo();
   // },[dateStatus])
 
-  // useEffect(()=>{ // 마커클릭시 지도이동
-  //   if(!info) return;
-  //   const bounds = new kakao.maps.LatLngBounds();
-  //   bounds.extend(new kakao.maps.LatLng(info.lat, info.lng));
-  //   map.panTo(bounds,32,32,32,500);
-  // },[info]);
+  useEffect(()=>{ // 마커클릭시 지도이동
+    if(!info) return;
+    setState({
+      center: {lat: info.lat, lng: info.lng},
+      isPanto: true
+    })
+    // const bounds = new kakao.maps.LatLngBounds();
+    // bounds.extend(new kakao.maps.LatLng(info.lat, info.lng));
+    // map.panTo(bounds,32,32,32,700);
+    // map.setLevel(4, {animate: true})
+  },[info]);
 
   const onDragEnd = (result, columns, setColumns) => { // 드래그앤드롭
     if (!result.destination) return;
@@ -216,6 +242,12 @@ function App() {
   const closeModal = () => {
     setModalOpen(false);
   };
+  const openReview = () => {
+    setReviewOpen(true);
+  };
+  const closeReview = () => {
+    setReviewOpen(false);
+  };
 
   const save = (title, content)=>{ // 저장하기
     let list = [];
@@ -234,17 +266,23 @@ function App() {
       t_poi : list
     }
     console.log(data);
-    axios.post('save/road/schedule/save',data).then((res)=>{console.log(res);});
+    axios.post('save/road/schedule/register',data).then((res)=>{console.log(res);});
   }
+
 
   return (
     <div className="content-container">
+      <React.Fragment>
+      <Modal open={modalOpen} close={closeModal} save={save} header="제목 : ">
+      </Modal>
+      <Review open={reviewOpen} close={closeReview} info={info} header="Review Link">
+      </Review>
       <div>
-        <div className="menu-container" style={{display: "flex", flexDirection:"column", width:"4vw"}}>
+        <div className="menu-container" style={{display: "flex", flexDirection:"column", width:"4vw", height: "100vh", borderRight: "solid 1px black"}}>
           <button onClick={()=>{getApi()}}>메인</button> 
-          <button onClick={()=>{searchDisplay();setDateStatus();}}>검색</button>
-          <button onClick={()=>{plannerDisplay()}}>일정</button>
-          <div onClick={()=>{roadDisplay()}}><Cart num={columns.cart.items.length}/></div>
+          <div onClick={()=>{searchDisplay();setDateStatus();let color = backColor.search !== "white" ? "white" : "skyblue";setBackColor({...backColor, search: color})}} style={{textAlign: "center", backgroundColor: backColor.search}}><button>검색</button></div>
+          <div onClick={()=>{plannerDisplay();let color = backColor.planner !== "white" ? "white" : "skyblue";setBackColor({...backColor, planner: color})}} style={{textAlign: "center", backgroundColor: backColor.planner}}><button>일정</button></div>
+          <div onClick={(e)=>{roadDisplay();let color = backColor.road !== "white" ? "white" : "skyblue";setBackColor({...backColor, road: color})}} style={{textAlign: "center", backgroundColor: backColor.road}}><Cart num={columns.cart.items.length}/></div>
         </div>
       </div>
         <div style={{position: "relative"}}>
@@ -252,13 +290,12 @@ function App() {
             <SnackbarProvider autoHideDuration={2000} anchorOrigin={{ vertical: "top", horizontal: "center" }}/>
             <div>
             <div style={{position: "relative"}}>
-              <div style={{position: "absolute", display: "flex", flexDirection: "row", zIndex:"2", background: "whitesmoke"}}>
+              <div style={{position: "absolute", display: "flex", flexDirection: "row", zIndex:"2", background: "white"}}>
                 {/* 검색탭 */}
-                <div ref={searchDisplayed} className="search-container" style={{height: "100vh", width: "15vw", border: "solid"}}>
-                  <div>
-                    <button onClick={() => {setKeyword(search.current.value);}}>검색</button>
-                    <input ref={search} type="text" onKeyDown={(e)=>{e.code === "Enter" && setKeyword(search.current.value)}}/>
-                    <button onClick={()=>{search.current.value = "";}}>X</button>
+                <div ref={searchDisplayed} className="search-container" style={{height: "100vh", width: "15vw", padding: "20px", borderRight: "solid 1px black"}}>
+                  <div className="searchDiv62">
+                    <input className="searchInput62" placeholder="검색어 입력" ref={search} type="text" onKeyDown={(e)=>{e.code === "Enter" && setKeyword(search.current.value)}}/>
+                    <button className="searchButton62" onClick={() => {setKeyword(search.current.value);}}>검색</button>
                   </div>
                   <div>
                     <ul>
@@ -271,10 +308,10 @@ function App() {
                   </div>
                 </div>
                 {/* 일정관리탭 */}
-                <div ref={plannerDisplayed} className="planner-container" style={{display: "none", height: "100vh", width: "15vw", border: "solid"}}> 
-                  <div style={{position:"static",zIndex:"3"}}>
+                <div ref={plannerDisplayed} className="planner-container" style={{display: "none", height: "100vh", width: "15vw", borderRight: "solid 1px black"}}> 
+                  <div style={{position:"static",zIndex:"3", paddingLeft: "40px",paddingTop: "20px"}}>
                     <DatePicker
-                      // open={endDate === null ? true : false}
+                      locale={ko}
                       selectsRange={true}
                       startDate={startDate}
                       endDate={endDate}
@@ -282,20 +319,19 @@ function App() {
                         setDateRange(update);
                         plannerDate(update);
                       }}
-                      isClearable={true}
+                      customInput={<ExampleCustomInput />}
+                      dateFormat="MM월 dd일"
                     />
-                    <React.Fragment>
                       <button onClick={openModal}>저장하기</button>
-                      <Modal open={modalOpen} close={closeModal} save={save} header="제목 : ">
-                      </Modal>
-                    </React.Fragment>
+                      
                   </div>
                   <div>
                     {Object.entries(columns).filter(item => item[0] !== "cart").map(([columnId, column], index) =>{
                       return (
+                        <div className="liste2">
                         <Droppable key={columnId} droppableId={columnId}>
                           {(provided, snapshot) => (
-                            <ul onClick={()=>{setMarkers(column.items);setDateStatus(columnId);}}
+                            <ol onClick={()=>{setMarkers(column.items);setDateStatus(columnId);}}
                               ref={provided.innerRef}
                               {...provided.droppableProps}
                             >
@@ -314,16 +350,17 @@ function App() {
                                 </Draggable>
                               ))}
                               {provided.placeholder}
-                            </ul>
+                            </ol>
                           )}
                         </Droppable>
+                        </div>
                       )
                     })}
                     {/* {Object.entries(columns).filter(item => item[0] !== "cart").map(item=><div>{item[1].title}</div>)} */}
                   </div>
                 </div>
                 {/* 길바구니탭 */}
-                <div ref={roadDisplayed} style={{display:"none", height: "100vh", width: "15vw", border: "solid"}}>
+                <div ref={roadDisplayed} style={{display:"none", height: "100vh", width: "15vw", borderRight: "solid 1px black"}}>
                   <Droppable key="cart" droppableId="cart">
                     {(provided) => (
                       <ul onClick={()=>{setMarkers(columns.cart.items);setDateStatus("cart");setLineOpacity(false);}}
@@ -357,8 +394,9 @@ function App() {
             <div style={{position:"absolute", zIndex:"1"}}>
               <Map // 로드뷰를 표시할 Container
                 onClick={()=>{setInfo()}}
-                center={{lng:126.919821259785, lat: 35.1498781550339}}
+                center={state.center}
                 style={{ width: "95vw",height: "100vh" }} 
+                isPanto={state.isPanto}
                 level={3}
                 onCreate={setMap}
               >
@@ -376,22 +414,30 @@ function App() {
                     position={{lat: marker.lat, lng: marker.lng}}
                     onClick={() => setInfo(marker)}
                   >
-                    {info && info.lat + info.lng === marker.lat + marker.lng && (
-                      <div style={{width: "300px", height: "200px", color: "#000"}}>
-                        {imgList[idx] === "" ? <div style={{width: "50px", height: "50px"}}/> : <img style={{width: "50px", height: "50px"}} src={imgList[idx]}/>}
-                        <button onClick={()=>{addCart(marker)}}>+</button>
-                        <button onClick={()=>{setInfo()}}>X</button><br/>
-                        {marker.poi_name}<br/>
-                        {marker.poi_category}<br/>
-                        {marker.poi_addr}
-                      </div>
-                    )}
                   </MapMarker>
                 ))}
+                {info && 
+                <CustomOverlayMap position={{lat: info.lat, lng: info.lng}} clickable={true} xAnchor={0.274}
+                yAnchor={1.23}>
+                  <div className="bubble">
+                        <button className="bubble-close" type="button" onClick={()=>{setInfo()}}><img src=""/></button>
+                        <strong style={{fontSize : "900"}}>{info.poi_name}</strong><br/>
+                        {info.poi_category}<br/>
+                        {info.poi_addr}<br/>
+                        {info.poi_img && <div style={{position: "absolute", right: "15px", top: "80px"}}><img style={{width: "85px", height: "85px"}} src={info.poi_img}/></div>}
+                        <div style={{position: "absolute", bottom: "25px"}}>
+                        <Stack spacing={2} direction="row">
+                        <Button variant="contained" onClick={()=>{addCart(info)}}>카트에 담기</Button>
+                        {info.poi_info && <Button variant="contained" onClick={openReview}>리뷰보기</Button>}
+                        </Stack>
+                        </div>
+                      </div>
+                </CustomOverlayMap>}
               </Map>
             </div>
           </DragDropContext>
         </div>
+        </React.Fragment>
     </div>
   );
 }

@@ -17,7 +17,7 @@ const Modal = (props) => {
               &times;
             </button>
           </header>
-          <main><textarea cols="50" rows="10" onChange={(e)=>{setContent(e.target.value)}}></textarea></main>
+          <main><textarea cols="60" rows="10" onChange={(e)=>{setContent(e.target.value)}}></textarea></main>
           <footer>
             <button className="close" onClick={()=>{save(title, content)}}>
               저장하기
