@@ -1,0 +1,19 @@
+
+/* axios spiner */
+.axios-loading {
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    overflow: auto;
+    display: block;
+    position: fixed !important;
+    background-color: rgba(0, 0, 0, 0.3);
+  }
+   
+  .axios-loading-indicator {
+    top: 45%;
+    left: calc(50% - 75px);
+    position: fixed;
+  }

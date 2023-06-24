@@ -15,3 +15,5 @@ npm install notistack
 npm i react-datepicker
 npm i react-beautiful-dnd
 npm install date-fns --save
+npm install tailwindcss@latest
+npm i react-spinners

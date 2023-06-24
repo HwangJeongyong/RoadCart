@@ -9,6 +9,7 @@ input::-moz-placeholder {color:#a8a8a8;}
   height: 40px;
   width: 300px;
   border: 1px solid #1b5ac2;
+  border-radius: 4px;
   background: #ffffff;
 }
 
@@ -107,11 +108,13 @@ button.bubble-close{
 }
 
 .example-custom-input {
-  background-color: #1b5ac2;
+  background-color: #2196f3;
   color: white;
   cursor: pointer;
   width: 240px;
   height: 50px;
   padding: 10px;
+  border: 0px;
+  border-radius: 5px;
   margin-bottom: 5px;
 }

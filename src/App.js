@@ -13,6 +13,9 @@ import Cart from './components/Cart'
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import { ko } from "date-fns/esm/locale";
+import PinDropIcon from '@mui/icons-material/PinDrop';
+import EditCalendarIcon from '@mui/icons-material/EditCalendar';
+import Loading from "./components/Loading"
 
 function App() {
   const initialColumn = {
@@ -45,7 +48,7 @@ function App() {
     // 지도 위치 변경시 panto를 이용할지에 대해서 정의
     isPanto: false,
   })
-  const [backColor, setBackColor] = useState({road: "white",search: "skyblue",planner: "white"});
+  const [backColor, setBackColor] = useState({road: {back:"white",text:"black"},search: {back:"#2196f3",text:"white"},planner: {back:"white",text:"black"}});
 
   useEffect(() => { // 지도검색
     if (!map) return;
@@ -279,10 +282,17 @@ function App() {
       </Review>
       <div>
         <div className="menu-container" style={{display: "flex", flexDirection:"column", width:"4vw", height: "100vh", borderRight: "solid 1px black"}}>
-          <button onClick={()=>{getApi()}}>메인</button> 
-          <div onClick={()=>{searchDisplay();setDateStatus();let color = backColor.search !== "white" ? "white" : "skyblue";setBackColor({...backColor, search: color})}} style={{textAlign: "center", backgroundColor: backColor.search}}><button>검색</button></div>
-          <div onClick={()=>{plannerDisplay();let color = backColor.planner !== "white" ? "white" : "skyblue";setBackColor({...backColor, planner: color})}} style={{textAlign: "center", backgroundColor: backColor.planner}}><button>일정</button></div>
-          <div onClick={(e)=>{roadDisplay();let color = backColor.road !== "white" ? "white" : "skyblue";setBackColor({...backColor, road: color})}} style={{textAlign: "center", backgroundColor: backColor.road}}><Cart num={columns.cart.items.length}/></div>
+          <div onClick={()=>{getApi()}} style={{marginTop: "20px", textAlign: "center", paddingBottom: "20px"}}>
+            <button>메인</button><div>홈</div></div>
+          <div onClick={()=>{searchDisplay();setDateStatus();let color = backColor.search.back !== "white" ? {back:"white",text:"black"} : {back:"#2196f3",text:"white"};setBackColor({...backColor, search: color})}} 
+          style={{textAlign: "center", backgroundColor: backColor.search.back, color: backColor.search.text, paddingBottom: "15px", paddingTop: "15px"}}>
+            <PinDropIcon color=""/><div>검색</div></div>
+          <div onClick={()=>{plannerDisplay();let color = backColor.planner.back !== "white" ? {back:"white",text:"black"} : {back:"#2196f3",text:"white"};setBackColor({...backColor, planner: color})}} 
+          style={{textAlign: "center", backgroundColor: backColor.planner.back, color: backColor.planner.text, paddingBottom: "15px", paddingTop: "20px"}}>
+            <EditCalendarIcon/><div>일정</div></div>
+          <div onClick={(e)=>{roadDisplay();let color = backColor.road.back !== "white" ? {back:"white",text:"black"} : {back:"#2196f3",text:"white"};setBackColor({...backColor, road: color})}} 
+          style={{textAlign: "center", backgroundColor: backColor.road.back, color: backColor.road.text, paddingBottom: "15px", paddingTop: "10px"}}>
+            <Cart cartColor={backColor.road.text} num={columns.cart.items.length}/><div>길바구니</div></div>
         </div>
       </div>
         <div style={{position: "relative"}}>
@@ -293,10 +303,12 @@ function App() {
               <div style={{position: "absolute", display: "flex", flexDirection: "row", zIndex:"2", background: "white"}}>
                 {/* 검색탭 */}
                 <div ref={searchDisplayed} className="search-container" style={{height: "100vh", width: "15vw", padding: "20px", borderRight: "solid 1px black"}}>
-                  <div className="searchDiv62">
-                    <input className="searchInput62" placeholder="검색어 입력" ref={search} type="text" onKeyDown={(e)=>{e.code === "Enter" && setKeyword(search.current.value)}}/>
-                    <button className="searchButton62" onClick={() => {setKeyword(search.current.value);}}>검색</button>
-                  </div>
+                    <div style={{height: "100px"}}>
+                      <div className="searchDiv62">
+                        <input className="searchInput62" placeholder="검색어 입력" ref={search} type="text" onKeyDown={(e)=>{e.code === "Enter" && setKeyword(search.current.value)}}/>
+                        <button className="searchButton62" onClick={() => {setKeyword(search.current.value);}}>검색</button>
+                      </div>
+                    </div>
                   <div>
                     <ul>
                       {searchList.map((item,idx)=>
@@ -335,7 +347,7 @@ function App() {
                               ref={provided.innerRef}
                               {...provided.droppableProps}
                             >
-                              <span onClick={()=>{setLineOpacity(true)}}>{column.title}</span>
+                              <span onClick={()=>{setLineOpacity(true)}}>{parseInt(column.title.substring(4,6)).toString()}월 {parseInt(column.title.substring(6,8).toString())}일</span>
                               {column.items.map((item, index) => (
                                 <Draggable key={item.lat} draggableId={item.lat} index={index}>
                                   {(provided) => (
